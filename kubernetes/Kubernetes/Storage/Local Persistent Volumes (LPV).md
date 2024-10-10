@@ -1,14 +1,13 @@
-The request is not authorized because credentials are missing or invalid.## Local Persistent Volumes
+Se empieza definiendo un persistent volume (volumen persistente).
 
-**LocThe request is not authorized because credentials are missing or invalid.
-Start by defining a persistent volume ``local-persistent-volume-recycle.yaml`` configuration file.
+ ``local-persistent-volume-recycle.yaml`` 
 ```yaml
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: local
+  name: volumen-local
   labels:
-    type: local
+    type: volumen-local
 spec:
   storageClassName: ""
   capacity:
@@ -20,19 +19,24 @@ spec:
   persistentVolumeReclaimPolicy: Recycle
 ```
 
-The configuration file specifies that the volume is at ``/data`` on the the cluster’s node. The volume type is ``hostPath`` meaning the volume is local to the host node. The configuration also specifies a size of 2GB and the access mode of ``ReadWriteOnce``, meanings the volume can be mounted as read write by a single pod at time. The reclaim policy is ``Recycle`` meaning the volume can be used many times.  It defines the Storage Class name manual for the persisten volume, which will be used to bind a claim to this volume.
+En el yml anteriror se especifica que el tipo de volumen es  `hostPath`, de esta forma el mismo va a estar de forma local en el nodo host en `/data` con un espacio disponible de `2Gb`.
 
-Create the persistent volume
+El acceso al mismo es de `ReadWriteOnce` lo que implica que solo puede ser montado con el permiso `write` en un solo `pod` al a vez, con `Recicle` logramos que el volumen se reutilice N veces.
+ The reclaim policy is ``Recycle`` meaning the volume can be used many times.  It defines the Storage Class name manual for the persisten volume, which will be used to bind a claim to this volume.
+
+Crea el VP (Volumen Persistente)
 
     kubectl create -f local-persistent-volume-recycle.yaml
     
-and view information about it 
+Muestra informacion del mismo:
 
     kubectl get pv
     NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
     local     2Gi        RWO           Recycle         Available                                      33m
 
-Now, we're going to use the volume above by creating a claiming for persistent storage. Create the following ``volume-claim.yaml`` configuration file
+Luego de crear el volumen persistente debemos hacer un `claim` al mismo  para persistir nuestro datos.
+
+``volume-claim.yaml`` 
 ```yaml
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -46,26 +50,27 @@ spec:
     requests:
       storage: 1Gi
 ```
+En la configuracion esta especificado 1GB pero el volumen que creamos previamente es de 2GB, lo que pasa es que el `claim` va hacer un `bound` a cualquier PV que tenga los requisitos minimos definidos.
 
-Note the claim is for 1GB of space where the the volume is 2GB. The claim will bound any volume meeting the minimum requirements specified into the claim definition. 
-
-Create the claim
+Creacion del claim
 
     kubectl create -f volume-claim.yaml
 
-Check the status of persistent volume to see if it is bound
+Status  del volumen persistente para ver  si esta en estado `bound`
 
     kubectl get pv
     NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS    CLAIM                  STORAGECLASS   REASON    AGE
     local     2Gi        RWO           Recycle         Bound     project/volume-claim                            37m
 
-Check the status of the claim
+Status del `claim`
 
     kubectl get pvc
     NAME           STATUS    VOLUME    CAPACITY   ACCESSMODES   STORAGECLASS   AGE
     volume-claim   Bound     local     2Gi        RWO                          1m
 
-Create a ``nginx-pod-pvc.yaml`` configuration file for a nginx pod using the above claim for its html content directory
+Creamos un  pod de nginx
+
+``nginx-pod-pvc.yaml`` 
 ```yaml
 ---
 kind: Pod
@@ -92,13 +97,15 @@ spec:
        claimName: volume-claim
 ```
 
-Note that the pod configuration file specifies a persistent volume claim, but it does not specify a persistent volume. From the pod point of view, the claim is the volume. Please note that a claim must exist in the same namespace as the pod using the claim.
+Cuando queremos usar un PV al nodo le tenemos que indicar el PVC, ya que los pods se comunican a travez de los PVC.
 
-Create the nginx pod
+**Los PVC deben estar en el mismo** `namespace`
+
+Creamos el pod de nginx
 
     kubectl create -f nginx-pod-pvc.yaml
 
-Accessing the nginx will return *403 Forbidden* since there are no html files to serve in the data volume
+Vemos la IP del POD y lo testeamos con `curl`
 
     kubectl get pod nginx -o yaml | grep IP
       hostIP: 10.10.10.86
@@ -107,24 +114,22 @@ Accessing the nginx will return *403 Forbidden* since there are no html files to
     curl 172.30.5.2:80
     403 Forbidden
 
-Let's login to the worker node and populate the data volume
+En el nodo creamos un archivo `index.html`dentro de `/data` con un texto.
 
     echo "Welcome to $(hostname)" > /data/index.html
 
-Now try again to access the nginx application
+Resultado del nuevo `curl`
 
      curl 172.30.5.2:80
      Welcome to kubew05
 
-To test the persistence of the volume and related claim, delete the pod and recreate it
+Podemos probar la persistencia del volumen borrando el pod para que se recree, si nada falla  nuestra web `index.html` deberia estar disponible.
 
     kubectl delete pod nginx
     pod "nginx" deleted
 
     kubectl create -f nginx-pod-pvc.yaml
     pod "nginx" created
-
-Locate the IP of the new nginx pod and try to access it
 
     kubectl get pod nginx -o yaml | grep podIP
       podIP: 172.30.5.2

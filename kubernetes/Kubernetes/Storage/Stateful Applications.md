@@ -1,4 +1,5 @@
 # Stateful Applications
+
 Common controller as Replica Set and Daemon Set are a great way to run stateless applications on kubernetes, but their semantics are not so friendly for deploying stateful applications. A better approach for deploying stateful applications on a kubernetes cluster, is to use **Stateful Set**.
 
 ## Stateful Set

@@ -28,13 +28,14 @@ Kubertenes tiene 2 formas de provisonar storage:
 
 In this section we're going to introduce this model by using simple examples. Please, refer to official documentation for more details.
 
-  * [[Local Persistent Volumes (LPV)]]
-  * [[Volume Access Mode]]
-  * [[Volume State]]
-  * [[Volume Reclaim Policy]]
-  * [[Manual volumes provisioning]]
-  * [[Storage Classes]]
-  * [[Dynamic volumes provisioning]]
-  * [[Redis benchmark]]
-  * [[Stateful Applications]]
-  * [[Configure GlusterFS as Storage backend]]
+  * Administracion de volumenes
+	  * [[Volume Access Mode]]
+	  * [[Volume State]]
+	  * [[Volume Reclaim Policy]]
+  * Storage
+	  * [[Local Persistent Volumes (LPV)]]
+	  * [[Manual volumes provisioning]]
+	  * [[Storage Classes]]
+	  * [[Dynamic volumes provisioning]]
+	  * [[Stateful Applications]]
+	  

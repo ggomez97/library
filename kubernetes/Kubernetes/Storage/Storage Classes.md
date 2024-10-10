@@ -1,52 +1,48 @@
 ## Storage Classes
-A Persistent Volume uses a given storage class specified into its definition file. A claim can request a particular class by specifying the name of a storage class in its definition file. Only volumes of the requested class can be bound to the claim requesting that class.
 
-If the storage class is not specified in the persistent volume definition, the volume has no class and can only be bound to claims that do not require any class. 
+Es un recurso que define diferentes tipos de almacenamiento que se pueden provisionar dinámicamente para los _PersistentVolumeClaims_ (PVCs). 
 
-Multiple storage classes can be defined specifying the volume provisioner to use when creating a volume of that class. This allows the cluster administrator to define multiple type of storage within a cluster, each with a custom set of parameters.
+La _StorageClass_ especifica un "provisioner" (un controlador de almacenamiento) que administra el aprovisionamiento de volúmenes, además de parámetros como el tipo de almacenamiento, las políticas de reaprovisionamiento, y otras configuraciones que se aplican a los volúmenes creados bajo esa clase.
 
-For example, the following ``gluster-storage-class.yaml`` configuration file defines a storage class for a GlusterFS backend
+![[storage-class-flow.png]]
+
+Se pueden definir múltiples storage classes especificando el provider de volumen a utilizar cuando se crea un volumen de esa storage class.
+Esto permite al administrador del clúster definir varios tipos de almacenamiento dentro de un clúster, cada uno con un conjunto personalizado de parámetros.
+
+Supongamos que en un clúster de Kubernetes se desean ofrecer tres tipos de almacenamiento:
+
+1. **Rápido y Replicado**: Usando SSD y replicación para aplicaciones críticas.
+2. **Económico y Escalable**: Usando discos HDD para almacenamiento a gran escala.
+3. **NFS Compartido**: Para acceso compartido entre múltiples pods.
+
+
+Por ejemplo creamos un StorageClass que provisione sobre un NFS:
 ```yaml
+apiVersion: storage.k8s.io/v1
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
 metadata:
-  name: glusterfs
-  labels:
-provisioner: kubernetes.io/glusterfs
-reclaimPolicy: Delete
+  name: nfs-storage-class
+provisioner: example.com/nfs
 parameters:
-  resturl: "http://heketi:8080"
-  volumetype: "replicate:3"
+  archiveOnDelete: "false"
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
 ```
 
-Create the storage class
-
-    kubectl create -f gluster-storage-class.yaml
-    kubectl get sc
-    NAME                              PROVISIONER
-    glusterfs-storage-class           kubernetes.io/glusterfs
-
-
-The cluster administrator can define a class as default storage class by setting an annotation in the class definition file
+Para utilizar esta _StorageClass_, puedes definir un _PersistentVolumeClaim_ que especifique esta clase de almacenamiento:
 ```yaml
-kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
-  name: default-storage-class
-  labels:
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-provisioner: kubernetes.io/glusterfs
-reclaimPolicy: Delete
-parameters:
-  resturl: "http://heketi:8080"
+  name: nfs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-storage-class
+  resources:
+    requests:
+      storage: 10Gi
 ```
 
-Check the storage classes
-
-    kubectl get sc
-    NAME                              PROVISIONER
-    default-storage-class (default)   kubernetes.io/glusterfs
-    glusterfs-storage-class           kubernetes.io/glusterfs
-
-If the cluster administrator defines a default storage class, all claims that do not require any class will be dynamically bound to volumes having the default storage class. 
+En este ejemplo, el _PersistentVolumeClaim_ (`nfs-pvc`) solicitará 10 GiB de almacenamiento utilizando la clase de almacenamiento `nfs-storage-class`. 
+Cuando este PVC es creado, el controlador NFS se encargará de aprovisionar el almacenamiento automáticamente, según los parámetros definidos en la _StorageClass_.

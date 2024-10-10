@@ -1,21 +1,13 @@
 ## Volume state
-When a pod claims for a volume, the cluster inspects the claim to find the volume meeting claim requirements and mounts that volume for the pod. Once a pod has a claim and that claim is bound, the bound volume belongs to the pod.
 
-A volume will be in one of the following state:
+Cuando un `pod` hace un `claim` a un `volumen` el cluster inspecciona el `claim` con los requerimientos del mismo y monta el `volumen` para el `pod`.
+Una vez el `pod` tiene el `claim` y esta en el estado **bound** (enlazado) el `volumen` pertenece al `pod`
 
-  * **Available**: a volume that is not yet bound to a claim
-  * **Bound**: the volume is bound to a claim
-  * **Released**: the claim has been deleted, but the volume is not yet available
-  * **Failed**: the volume has failed 
+Un volumen tiene estos **states**:
 
-The volume is considered released when the claim is deleted, but it is not yet available for another claim. Once the volume becomes available again then it can bound to another other claim. 
+  * **Available**:  El volumen esta **DISPONIBLE** ya que aun no fue  `bound` a  un `claim`
+  * **Bound**:  El volumen esta atado a un `claim`
+  * **Released**:  El `claim` fue borrado pero el volumen aun no esta disponibilizado
+  * **Failed**: El volumen fallo
 
-In our example, delete the volume claim
-
-    kubectl delete pvc volume-claim
-
-See the status of the volume
-
-    kubectl get pv persistent-volume
-    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
-    local     2Gi        RWO           Recycle         Available                                      57m
+El volumen es considerado **released** cuando el `claim` esta borrado, pero aun no esta **available** para otro `claim`.
